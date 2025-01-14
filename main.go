@@ -19,14 +19,13 @@ func main() {
 		return
 	}
 
-	dist, next := initMatrices(n)
-
-	if !readEdges(scanner, dist, next, m) {
+	maxVertex, dist, next, valid := readEdges(scanner, m)
+	if !valid {
 		fmt.Println("NO")
 		return
 	}
 
-	floydWarshall(dist, next, n)
+	floydWarshall(dist, next, maxVertex)
 
 	if cycle := findNegativeCycle(dist, next, n); len(cycle) > 0 {
 		fmt.Println("YES")
@@ -67,25 +66,52 @@ func initMatrices(n int) ([][]int, [][]int) {
 	return dist, next
 }
 
-func readEdges(scanner *bufio.Scanner, dist [][]int, next [][]int, m int) bool {
-	for i := 0; i < m; i++ {
-		if !scanner.Scan() {
-			return false
-		}
+func readEdges(scanner *bufio.Scanner, m int) (int, [][]int, [][]int, bool) {
+	maxVertex := 0
+	
+	edges := make([][3]int, 0, m)
+
+	for scanner.Scan() {
 		parts := strings.Fields(scanner.Text())
 		if len(parts) != 3 {
-			return false
+			fmt.Println("Некорректная строка рёбер, пропускаем.")
+			continue
 		}
+
 		u, errU := strconv.Atoi(parts[0])
 		v, errV := strconv.Atoi(parts[1])
 		w, errW := strconv.Atoi(parts[2])
+
 		if errU != nil || errV != nil || errW != nil {
-			return false
+			fmt.Println("Некорректные данные, пропускаем строку.")
+			continue
 		}
-		dist[u][v] = w
-		next[u][v] = v
+
+		edges = append(edges, [3]int{u,v,w}) 
+
+		if u > maxVertex {
+			maxVertex = u
+		}
+
+		if v > maxVertex {
+			maxVertex = v
+		}
 	}
-	return true
+
+	if len(edges) == 0 {
+		return 0, nil, nil, false
+	}
+
+	dist, next := initMatrices(maxVertex)
+
+		for _, edge := range edges {
+			u, v, w := edge[0], edge[1], edge[2]
+			if dist[u][v] > w {
+				dist[u][v] = w
+				next[u][v] = v
+			}
+		}
+	return maxVertex, dist, next, true
 }
 
 func floydWarshall(dist [][]int, next [][]int, n int) {
@@ -113,19 +139,21 @@ func findNegativeCycle(dist [][]int, next [][]int, n int) []int {
 }
 
 func restoreCycle(next [][]int, start int) []int {
-	cycle := []int{start}
-	visited := make(map[int]bool)
-	for !visited[start] {
-		visited[start] = true
-		start = next[start][start]
-		cycle = append(cycle, start)
+	cycle := []int{}
+	visited := make([]bool, len(next))
+	current := start
+
+	for i := 0; i < len(next); i++ {
+		current = next[current][start]
 	}
-	// Отрезаем повторение в цикле
-	for i, v := range cycle {
-		if v == start && i < len(cycle)-1 {
-			return cycle[i:]
-		}
+
+	for !visited[current] {
+		visited[current] = true
+		cycle = append(cycle, current)
+		current = next[current][start]
 	}
+
+	cycle = append(cycle, current)
 	return cycle
 }
 
