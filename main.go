@@ -72,6 +72,11 @@ func readEdges(scanner *bufio.Scanner, m int) (int, [][]int, [][]int, bool) {
 	edges := make([][3]int, 0, m)
 
 	for scanner.Scan() {
+		line := strings.TrimSpace(scanner.Text())
+
+		if line == "" {
+			break
+		}
 		parts := strings.Fields(scanner.Text())
 		if len(parts) != 3 {
 			fmt.Println("Некорректная строка рёбер, пропускаем.")
@@ -96,6 +101,10 @@ func readEdges(scanner *bufio.Scanner, m int) (int, [][]int, [][]int, bool) {
 		if v > maxVertex {
 			maxVertex = v
 		}
+	}
+	if err := scanner.Err(); err != nil {
+		fmt.Println("Ошибка ввода:", err)
+		return 0, nil, nil, false
 	}
 
 	if len(edges) == 0 {
